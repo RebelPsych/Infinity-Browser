@@ -1,4 +1,4 @@
-# NanoBrowser — Stripped Minimal UI & Tab Management System
+# Infinity Browser — Stripped Minimal UI & Tab Management System
 
 A radical redesign that strips away all bottom navigation pills, floating overlays, and home clutter. The entire interface is streamlined into a single, compact top bar with an omnibar (URL / Google search), a tab count button leading to a thumbnail preview grid, and an infinity symbol (`∞`) dropdown menu.
 

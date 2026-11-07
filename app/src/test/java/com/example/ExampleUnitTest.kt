@@ -1,16 +1,54 @@
 package com.example
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
 class ExampleUnitTest {
-  @Test
-  fun addition_isCorrect() {
-    assertEquals(4, 2 + 2)
-  }
+
+    @Test
+    fun `multi tab and stealth tab management test`() {
+        val viewModel = BrowserViewModel()
+        assertEquals(1, viewModel.uiState.value.tabs.size)
+        assertFalse(viewModel.uiState.value.activeTab.isIncognito)
+
+        // Open Stealth Tab
+        viewModel.openNewTab(isIncognito = true)
+        assertEquals(2, viewModel.uiState.value.tabs.size)
+        assertTrue(viewModel.uiState.value.activeTab.isIncognito)
+
+        // Close Tab
+        val stealthTabId = viewModel.uiState.value.activeTabId
+        viewModel.closeTab(stealthTabId)
+        assertEquals(1, viewModel.uiState.value.tabs.size)
+        assertFalse(viewModel.uiState.value.activeTab.isIncognito)
+    }
+
+    @Test
+    fun `view model url and google search resolution test`() {
+        val viewModel = BrowserViewModel()
+
+        // Direct URL load
+        viewModel.loadUrl("https://example.com")
+        assertEquals("https://example.com", viewModel.uiState.value.activeTab.url)
+
+        // Domain auto-prefixing
+        viewModel.loadUrl("wikipedia.org")
+        assertEquals("https://wikipedia.org", viewModel.uiState.value.activeTab.url)
+
+        // Google search routing for search queries
+        viewModel.loadUrl("android speed test")
+        assertTrue(viewModel.uiState.value.activeTab.url.contains("google.com/search?q=") == true)
+
+        // Toggle Desktop site
+        assertFalse(viewModel.uiState.value.activeTab.isDesktopSite)
+        viewModel.toggleDesktopSite()
+        assertTrue(viewModel.uiState.value.activeTab.isDesktopSite)
+
+        // Bookmark toggle
+        assertFalse(viewModel.isCurrentPageBookmarked())
+        viewModel.toggleBookmark()
+        assertTrue(viewModel.isCurrentPageBookmarked())
+    }
 }

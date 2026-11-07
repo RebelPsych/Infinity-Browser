@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "NanoBrowser"
+rootProject.name = "Infinity Browser"
 
 include(":app")

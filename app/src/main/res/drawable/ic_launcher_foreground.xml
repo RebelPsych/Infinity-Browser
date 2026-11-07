@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/nanobrowser_icon_1794070937137"
+        android:drawable="@drawable/infinity_icon"
         android:gravity="center" />
 </layer-list>

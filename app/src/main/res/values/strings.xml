@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">NanoBrowser</string>
+    <string name="app_name">Infinity Browser</string>
     <string name="search_hint">Search the web or enter URL…</string>
-    <string name="blank_page_title">NanoBrowser</string>
+    <string name="blank_page_title">Infinity Browser</string>
     <string name="blank_page_subtitle">Zero bloat • Maximum speed • Minimal RAM</string>
     <string name="btn_back">Back</string>
     <string name="btn_forward">Forward</string>

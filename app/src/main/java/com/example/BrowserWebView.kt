@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.os.Build
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -56,6 +58,11 @@ class BrowserController {
     fun loadUrl(url: String) {
         webView?.loadUrl(url)
     }
+
+    fun purgeCache() {
+        webView?.clearCache(false)
+        webView?.freeMemory()
+    }
 }
 
 private const val DESKTOP_USER_AGENT =
@@ -105,7 +112,7 @@ fun BrowserWebView(
         }
     }
 
-    // Lifecycle handling: pause timers when in background
+    // Lifecycle handling: pause timers & JS execution when backgrounded to save RAM & battery
     DisposableEffect(lifecycleOwner, webView) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -138,6 +145,7 @@ fun BrowserWebView(
     )
 }
 
+@Suppress("DEPRECATION")
 @SuppressLint("SetJavaScriptEnabled")
 private fun createConfiguredWebView(
     context: Context,
@@ -151,6 +159,9 @@ private fun createConfiguredWebView(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
+
+        // Dark background prevents white flash during page load
+        setBackgroundColor(Color.parseColor("#070A0F"))
 
         settings.apply {
             javaScriptEnabled = true
@@ -167,6 +178,14 @@ private fun createConfiguredWebView(
             saveFormData = false
             savePassword = false
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+
+            // Force dark mode on all web pages natively
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                forceDark = WebSettings.FORCE_DARK_ON
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                isAlgorithmicDarkeningAllowed = true
+            }
         }
 
         // Stealth tab cookie isolation
@@ -187,6 +206,21 @@ private fun createConfiguredWebView(
                 val canForward = view?.canGoForward() ?: false
                 val title = view?.title
                 onPageFinished(url, title, canBack, canForward)
+
+                // Inject CSS preference for dark mode
+                view?.evaluateJavascript(
+                    """
+                    (function() {
+                        if (!document.getElementById('__infinity_dark_style')) {
+                            var s = document.createElement('style');
+                            s.id = '__infinity_dark_style';
+                            s.innerHTML = '@media (prefers-color-scheme: light) { html { color-scheme: dark; } }';
+                            document.head && document.head.appendChild(s);
+                        }
+                    })();
+                    """.trimIndent(),
+                    null
+                )
             }
 
             override fun shouldOverrideUrlLoading(

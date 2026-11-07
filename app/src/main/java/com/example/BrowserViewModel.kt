@@ -174,7 +174,7 @@ class BrowserViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 isMenuOpen = false,
-                snackBarMessage = "NanoBrowser is installed and ready on your device."
+                snackBarMessage = "Infinity Browser is installed and ready on your device."
             )
         }
     }
