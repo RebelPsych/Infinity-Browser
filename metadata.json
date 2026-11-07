@@ -1,0 +1,6 @@
+{
+  "name": "NanoBrowser",
+  "description": "A bare-bones, hyper-fast Android web browser stripped of all bloat, focusing strictly on speed and minimal memory usage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

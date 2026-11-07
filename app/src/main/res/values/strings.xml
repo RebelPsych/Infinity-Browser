@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">NanoBrowser</string>
+    <string name="search_hint">Search the web or enter URL…</string>
+    <string name="blank_page_title">NanoBrowser</string>
+    <string name="blank_page_subtitle">Zero bloat • Maximum speed • Minimal RAM</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_forward">Forward</string>
+    <string name="btn_reload">Reload</string>
+    <string name="btn_stop">Stop</string>
+    <string name="btn_home">Home</string>
+    <string name="btn_purge_ram">Purge RAM</string>
+    <string name="btn_go">Go</string>
+    <string name="memory_freed">Memory cleaned! Current RAM: %1$d MB</string>
+    <string name="quick_shortcuts_header">Quick Access</string>
+</resources>
