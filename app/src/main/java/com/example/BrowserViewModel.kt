@@ -43,11 +43,10 @@ class BrowserViewModel : ViewModel() {
         }
     }
 
-    fun openNewTab(isIncognito: Boolean = false) {
+    fun openNewTab() {
         val newTab = BrowserTab(
             url = "https://www.google.com",
-            title = if (isIncognito) "Stealth Tab" else "Google",
-            isIncognito = isIncognito
+            title = "Google"
         )
         _uiState.update { state ->
             state.copy(
@@ -170,14 +169,6 @@ class BrowserViewModel : ViewModel() {
         }
     }
 
-    fun triggerInstall() {
-        _uiState.update {
-            it.copy(
-                isMenuOpen = false,
-                snackBarMessage = "Infinity Browser is installed and ready on your device."
-            )
-        }
-    }
 
     fun triggerCreateShortcut(context: Context) {
         val active = _uiState.value.activeTab
@@ -251,8 +242,8 @@ class BrowserViewModel : ViewModel() {
                 if (tab.id == tabId) {
                     val resolvedUrl = url ?: tab.url
                     val resolvedTitle = title ?: tab.title
-                    // Save to history if not stealth tab and valid web url
-                    if (!tab.isIncognito && !resolvedUrl.startsWith("about:") && resolvedUrl.isNotBlank()) {
+                    // Save to history if valid web url
+                    if (!resolvedUrl.startsWith("about:") && resolvedUrl.isNotBlank()) {
                         addHistoryEntry(resolvedTitle, resolvedUrl)
                     }
                     tab.copy(

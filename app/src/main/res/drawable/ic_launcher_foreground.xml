@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/infinity_icon"
+        android:drawable="@drawable/infinity_planet_icon"
         android:gravity="center" />
 </layer-list>

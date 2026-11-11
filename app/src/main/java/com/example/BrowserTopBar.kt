@@ -2,10 +2,8 @@ package com.example
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,18 +22,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.AllInclusive
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -55,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -67,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.InfinityPurpleLight
 import com.example.ui.theme.RamAmber
 import com.example.ui.theme.RamGreen
 
@@ -85,11 +80,9 @@ fun BrowserTopBar(
     onReload: () -> Unit,
     onToggleBookmark: () -> Unit,
     onNewTab: () -> Unit,
-    onNewStealthTab: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenBookmarks: () -> Unit,
     onToggleDesktopSite: () -> Unit,
-    onInstall: () -> Unit,
     onCreateShortcut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -102,11 +95,8 @@ fun BrowserTopBar(
         }
     }
 
-    val barBg = if (activeTab.isIncognito) Color(0xFF0F141C) else MaterialTheme.colorScheme.surface
-    val accentColor = if (activeTab.isIncognito) RamAmber else CyanAccent
-
     Surface(
-        color = barBg,
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp,
         shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth()
@@ -124,7 +114,7 @@ fun BrowserTopBar(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    if (isFocused) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    if (isFocused) CyanAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 ),
                 modifier = Modifier
                     .weight(1f)
@@ -138,9 +128,9 @@ fun BrowserTopBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = if (activeTab.isIncognito) Icons.Default.VisibilityOff else if (activeTab.url.startsWith("https://")) Icons.Default.Lock else Icons.Default.Search,
+                        imageVector = if (activeTab.url.startsWith("https://")) Icons.Default.Lock else Icons.Default.Search,
                         contentDescription = null,
-                        tint = if (activeTab.isIncognito) RamAmber else if (activeTab.url.startsWith("https://")) RamGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (activeTab.url.startsWith("https://")) RamGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
 
@@ -159,7 +149,7 @@ fun BrowserTopBar(
                             fontSize = 14.sp,
                             fontFamily = FontFamily.Default
                         ),
-                        cursorBrush = SolidColor(accentColor),
+                        cursorBrush = SolidColor(CyanAccent),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Uri,
                             imeAction = ImeAction.Go
@@ -210,7 +200,7 @@ fun BrowserTopBar(
                 onClick = onToggleTabSwitcher,
                 shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, accentColor.copy(alpha = 0.7f)),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, CyanAccent.copy(alpha = 0.7f)),
                 modifier = Modifier
                     .size(36.dp)
                     .testTag("tab_count_button")
@@ -230,7 +220,7 @@ fun BrowserTopBar(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            // 3. Infinity button: [ ∞ ]
+            // 3. Infinity button: [ ∞ ] - Light Purple Color
             Box {
                 IconButton(
                     onClick = onToggleMenu,
@@ -241,7 +231,7 @@ fun BrowserTopBar(
                     Icon(
                         imageVector = Icons.Default.AllInclusive,
                         contentDescription = "Options menu",
-                        tint = accentColor,
+                        tint = InfinityPurpleLight, // Light purple color requested by user
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -330,26 +320,6 @@ fun BrowserTopBar(
                         modifier = Modifier.testTag("menu_item_new_tab")
                     )
 
-                    // Option: New Stealth tab (incognito)
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("New Stealth tab", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    "(incognito)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = RamAmber
-                                )
-                            }
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.VisibilityOff, contentDescription = null, tint = RamAmber, modifier = Modifier.size(20.dp))
-                        },
-                        onClick = onNewStealthTab,
-                        modifier = Modifier.testTag("menu_item_new_stealth_tab")
-                    )
-
                     // Option: history
                     DropdownMenuItem(
                         text = { Text("History", style = MaterialTheme.typography.bodyMedium) },
@@ -382,7 +352,7 @@ fun BrowserTopBar(
                                 Checkbox(
                                     checked = activeTab.isDesktopSite,
                                     onCheckedChange = { onToggleDesktopSite() },
-                                    colors = CheckboxDefaults.colors(checkedColor = accentColor),
+                                    colors = CheckboxDefaults.colors(checkedColor = InfinityPurpleLight),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -392,16 +362,6 @@ fun BrowserTopBar(
                         },
                         onClick = onToggleDesktopSite,
                         modifier = Modifier.testTag("menu_item_desktop_site")
-                    )
-
-                    // Option: install
-                    DropdownMenuItem(
-                        text = { Text("Install", style = MaterialTheme.typography.bodyMedium) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(20.dp))
-                        },
-                        onClick = onInstall,
-                        modifier = Modifier.testTag("menu_item_install")
                     )
 
                     // Option: create shortcut

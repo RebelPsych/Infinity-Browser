@@ -8,21 +8,18 @@ import org.junit.Test
 class ExampleUnitTest {
 
     @Test
-    fun `multi tab and stealth tab management test`() {
+    fun `multi tab management test`() {
         val viewModel = BrowserViewModel()
         assertEquals(1, viewModel.uiState.value.tabs.size)
-        assertFalse(viewModel.uiState.value.activeTab.isIncognito)
 
-        // Open Stealth Tab
-        viewModel.openNewTab(isIncognito = true)
+        // Open New Tab
+        viewModel.openNewTab()
         assertEquals(2, viewModel.uiState.value.tabs.size)
-        assertTrue(viewModel.uiState.value.activeTab.isIncognito)
 
         // Close Tab
-        val stealthTabId = viewModel.uiState.value.activeTabId
-        viewModel.closeTab(stealthTabId)
+        val secondTabId = viewModel.uiState.value.activeTabId
+        viewModel.closeTab(secondTabId)
         assertEquals(1, viewModel.uiState.value.tabs.size)
-        assertFalse(viewModel.uiState.value.activeTab.isIncognito)
     }
 
     @Test

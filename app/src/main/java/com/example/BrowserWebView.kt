@@ -65,8 +65,9 @@ class BrowserController {
     }
 }
 
+// Windows 11 Chrome Desktop User Agent - universally recognized by Google AI Studio, Google Docs, and desktop sites
 private const val DESKTOP_USER_AGENT =
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -80,11 +81,13 @@ fun BrowserWebView(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val defaultMobileUserAgent = remember { WebSettings.getDefaultUserAgent(context) }
 
     val webView = remember(tab.id) {
         createConfiguredWebView(
             context = context,
             tab = tab,
+            defaultMobileUserAgent = defaultMobileUserAgent,
             onPageStarted = onPageStarted,
             onProgressChanged = onProgressChanged,
             onPageFinished = onPageFinished
@@ -93,14 +96,18 @@ fun BrowserWebView(
         }
     }
 
-    // React to Desktop Site toggle
+    // React to Desktop Site toggle with viewport scaling and user-agent swap
     LaunchedEffect(tab.isDesktopSite) {
-        val currentAgent = webView.settings.userAgentString
-        val targetAgent = if (tab.isDesktopSite) DESKTOP_USER_AGENT else null
-        if (currentAgent != targetAgent) {
+        val targetAgent = if (tab.isDesktopSite) DESKTOP_USER_AGENT else defaultMobileUserAgent
+        if (webView.settings.userAgentString != targetAgent) {
             webView.settings.userAgentString = targetAgent
-            webView.settings.useWideViewPort = tab.isDesktopSite
-            webView.settings.loadWithOverviewMode = tab.isDesktopSite
+            webView.settings.useWideViewPort = true
+            webView.settings.loadWithOverviewMode = true
+            if (tab.isDesktopSite) {
+                webView.setInitialScale(100)
+            } else {
+                webView.setInitialScale(0)
+            }
             webView.reload()
         }
     }
@@ -150,6 +157,7 @@ fun BrowserWebView(
 private fun createConfiguredWebView(
     context: Context,
     tab: BrowserTab,
+    defaultMobileUserAgent: String,
     onPageStarted: (String?) -> Unit,
     onProgressChanged: (Int) -> Unit,
     onPageFinished: (String?, String?, Boolean, Boolean) -> Unit
@@ -163,18 +171,31 @@ private fun createConfiguredWebView(
         // Dark background prevents white flash during page load
         setBackgroundColor(Color.parseColor("#070A0F"))
 
+        // Cookies setup: Google AI Studio and modern auth strictly require third-party cookies
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(this, true)
+
         settings.apply {
             javaScriptEnabled = true
-            domStorageEnabled = !tab.isIncognito
-            databaseEnabled = false
+            domStorageEnabled = true
+            databaseEnabled = true
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(false)
+            allowFileAccess = true
+            allowContentAccess = true
             setGeolocationEnabled(false)
             mediaPlaybackRequiresUserGesture = true
-            cacheMode = if (tab.isIncognito) WebSettings.LOAD_NO_CACHE else WebSettings.LOAD_DEFAULT
-            useWideViewPort = tab.isDesktopSite
-            loadWithOverviewMode = tab.isDesktopSite
-            userAgentString = if (tab.isDesktopSite) DESKTOP_USER_AGENT else null
+            cacheMode = WebSettings.LOAD_DEFAULT
+
+            // Viewport & zoom for desktop site compatibility
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
+
+            userAgentString = if (tab.isDesktopSite) DESKTOP_USER_AGENT else defaultMobileUserAgent
             saveFormData = false
             savePassword = false
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
@@ -188,10 +209,8 @@ private fun createConfiguredWebView(
             }
         }
 
-        // Stealth tab cookie isolation
-        if (tab.isIncognito) {
-            val cookieManager = CookieManager.getInstance()
-            cookieManager.setAcceptCookie(false)
+        if (tab.isDesktopSite) {
+            setInitialScale(100)
         }
 
         webViewClient = object : WebViewClient() {
@@ -207,15 +226,29 @@ private fun createConfiguredWebView(
                 val title = view?.title
                 onPageFinished(url, title, canBack, canForward)
 
-                // Inject CSS preference for dark mode
+                // Inject dark mode preference CSS and desktop viewport helper
+                val isDesktop = tab.isDesktopSite
                 view?.evaluateJavascript(
                     """
                     (function() {
+                        // Dark mode stylesheet injection
                         if (!document.getElementById('__infinity_dark_style')) {
                             var s = document.createElement('style');
                             s.id = '__infinity_dark_style';
                             s.innerHTML = '@media (prefers-color-scheme: light) { html { color-scheme: dark; } }';
                             document.head && document.head.appendChild(s);
+                        }
+                        // Desktop site viewport width reinforcement for Google AI Studio & desktop apps
+                        if ($isDesktop) {
+                            var vp = document.querySelector('meta[name="viewport"]');
+                            if (vp) {
+                                vp.setAttribute('content', 'width=1280, initial-scale=0.8, user-scalable=yes');
+                            } else {
+                                var m = document.createElement('meta');
+                                m.name = 'viewport';
+                                m.content = 'width=1280, initial-scale=0.8, user-scalable=yes';
+                                document.head && document.head.appendChild(m);
+                            }
                         }
                     })();
                     """.trimIndent(),

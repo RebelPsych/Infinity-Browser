@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.theme.CyanAccent
-import com.example.ui.theme.RamAmber
+import com.example.ui.theme.InfinityPurpleLight
 
 @Composable
 fun BrowserScreen(
@@ -55,7 +55,6 @@ fun BrowserScreen(
             activeTab.canGoBack -> controller.goBack()
             uiState.tabs.size > 1 -> viewModel.closeTab(activeTab.id)
             else -> {
-                // Exit or minimize app
                 (context as? android.app.Activity)?.finish()
             }
         }
@@ -72,9 +71,14 @@ fun BrowserScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (activeTab.isIncognito) Color(0xFF090D14) else MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // Main Browser View with explicit navigationBarsPadding to stay above 3-button navigation bar
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+        ) {
             // Stripped down Top Bar: URL box (search with google / enter url) + tab count [N] + infinity [∞]
             BrowserTopBar(
                 activeTab = activeTab,
@@ -89,12 +93,10 @@ fun BrowserScreen(
                 onForward = { controller.goForward() },
                 onReload = { controller.reload() },
                 onToggleBookmark = { viewModel.toggleBookmark() },
-                onNewTab = { viewModel.openNewTab(isIncognito = false) },
-                onNewStealthTab = { viewModel.openNewTab(isIncognito = true) },
+                onNewTab = { viewModel.openNewTab() },
                 onOpenHistory = { viewModel.openHistory() },
                 onOpenBookmarks = { viewModel.openBookmarks() },
                 onToggleDesktopSite = { viewModel.toggleDesktopSite() },
-                onInstall = { viewModel.triggerInstall() },
                 onCreateShortcut = { viewModel.triggerCreateShortcut(context) }
             )
 
@@ -106,7 +108,7 @@ fun BrowserScreen(
                         .fillMaxWidth()
                         .height(2.5.dp)
                         .testTag("top_progress_bar"),
-                    color = if (activeTab.isIncognito) RamAmber else CyanAccent,
+                    color = InfinityPurpleLight,
                     trackColor = Color.Transparent
                 )
             }
@@ -137,8 +139,7 @@ fun BrowserScreen(
                 activeTabId = uiState.activeTabId,
                 onSelectTab = { viewModel.selectTab(it) },
                 onCloseTab = { viewModel.closeTab(it) },
-                onNewTab = { viewModel.openNewTab(isIncognito = false) },
-                onNewStealthTab = { viewModel.openNewTab(isIncognito = true) },
+                onNewTab = { viewModel.openNewTab() },
                 onCloseSwitcher = { viewModel.closeTabSwitcher() }
             )
         }
@@ -178,19 +179,20 @@ fun BrowserScreen(
             )
         }
 
-        // Floating Snackbar
+        // Floating Snackbar (positioned above navigation bar)
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp)
         ) { data ->
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    if (activeTab.isIncognito) RamAmber.copy(alpha = 0.5f) else CyanAccent.copy(alpha = 0.5f)
+                    InfinityPurpleLight.copy(alpha = 0.5f)
                 ),
                 shadowElevation = 6.dp
             ) {

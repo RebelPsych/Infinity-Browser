@@ -6,7 +6,6 @@ data class BrowserTab(
     val id: String = UUID.randomUUID().toString(),
     val url: String = "https://www.google.com",
     val title: String = "New Tab",
-    val isIncognito: Boolean = false,
     val isDesktopSite: Boolean = false,
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,

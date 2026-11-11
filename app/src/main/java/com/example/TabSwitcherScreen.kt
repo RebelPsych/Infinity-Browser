@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -46,7 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.CyanAccent
-import com.example.ui.theme.RamAmber
+import com.example.ui.theme.InfinityPurpleLight
 import java.net.URI
 
 @Composable
@@ -56,7 +56,6 @@ fun TabSwitcherScreen(
     onSelectTab: (String) -> Unit,
     onCloseTab: (String) -> Unit,
     onNewTab: () -> Unit,
-    onNewStealthTab: () -> Unit,
     onCloseSwitcher: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -73,6 +72,7 @@ fun TabSwitcherScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
         ) {
             // Header
             Row(
@@ -92,20 +92,7 @@ fun TabSwitcherScreen(
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // New Stealth Tab
-                    IconButton(
-                        onClick = onNewStealthTab,
-                        modifier = Modifier.testTag("tab_switcher_new_stealth_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.VisibilityOff,
-                            contentDescription = "New Stealth Tab",
-                            tint = RamAmber,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    // New Regular Tab
+                    // New Tab
                     IconButton(
                         onClick = onNewTab,
                         modifier = Modifier.testTag("tab_switcher_new_tab_btn")
@@ -113,7 +100,7 @@ fun TabSwitcherScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "New Tab",
-                            tint = CyanAccent,
+                            tint = InfinityPurpleLight,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -149,16 +136,12 @@ fun TabSwitcherScreen(
             ) {
                 items(tabs, key = { it.id }) { tab ->
                     val isActive = tab.id == activeTabId
-                    val borderColor = when {
-                        isActive && tab.isIncognito -> RamAmber
-                        isActive -> CyanAccent
-                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                    }
+                    val borderColor = if (isActive) InfinityPurpleLight else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
 
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (tab.isIncognito) Color(0xFF10141D) else MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(if (isActive) 2.dp else 1.dp, borderColor),
                         elevation = CardDefaults.cardElevation(defaultElevation = if (isActive) 6.dp else 2.dp),
@@ -174,9 +157,7 @@ fun TabSwitcherScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(
-                                        if (tab.isIncognito) Color(0xFF171E2B) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                                    )
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -186,9 +167,9 @@ fun TabSwitcherScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = if (tab.isIncognito) Icons.Default.VisibilityOff else Icons.Default.Public,
+                                        imageVector = Icons.Default.Public,
                                         contentDescription = null,
-                                        tint = if (tab.isIncognito) RamAmber else CyanAccent,
+                                        tint = if (isActive) InfinityPurpleLight else CyanAccent,
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -221,9 +202,7 @@ fun TabSwitcherScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
-                                    .background(
-                                        if (tab.isIncognito) Color(0xFF0B0E14) else MaterialTheme.colorScheme.background
-                                    )
+                                    .background(MaterialTheme.colorScheme.background)
                                     .padding(12.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -235,15 +214,15 @@ fun TabSwitcherScreen(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .background(
-                                                (if (tab.isIncognito) RamAmber else CyanAccent).copy(alpha = 0.12f),
+                                                (if (isActive) InfinityPurpleLight else CyanAccent).copy(alpha = 0.12f),
                                                 CircleShape
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = if (tab.isIncognito) Icons.Default.VisibilityOff else Icons.Default.Public,
+                                            imageVector = Icons.Default.Public,
                                             contentDescription = null,
-                                            tint = if (tab.isIncognito) RamAmber else CyanAccent,
+                                            tint = if (isActive) InfinityPurpleLight else CyanAccent,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -260,14 +239,6 @@ fun TabSwitcherScreen(
                                         overflow = TextOverflow.Ellipsis,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-
-                                    if (tab.isIncognito) {
-                                        Text(
-                                            text = "Stealth Session",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = RamAmber
-                                        )
-                                    }
                                 }
                             }
                         }
