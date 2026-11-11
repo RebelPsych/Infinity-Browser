@@ -19,12 +19,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Pre-warm the WebView engine in background for faster cold starts
-        lifecycleScope.launch(Dispatchers.Main.immediate) {
-            try {
-                WebView(this@MainActivity).destroy()
-            } catch (_: Exception) {}
-        }
 
         setContent {
             MyApplicationTheme {

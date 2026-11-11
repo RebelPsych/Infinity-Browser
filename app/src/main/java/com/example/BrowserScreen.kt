@@ -51,7 +51,10 @@ fun BrowserScreen(
             uiState.isHistoryOpen -> viewModel.closeHistory()
             uiState.isBookmarksOpen -> viewModel.closeBookmarks()
             uiState.isMenuOpen -> viewModel.closeMenu()
-            activeTab.isError && activeTab.canGoBack -> controller.goBack()
+            activeTab.isError -> {
+                viewModel.clearError(activeTab.id)
+                if (activeTab.canGoBack) controller.goBack() else viewModel.loadUrl("https://www.google.com")
+            }
             activeTab.canGoBack -> controller.goBack()
             uiState.tabs.size > 1 -> viewModel.closeTab(activeTab.id)
             else -> {
@@ -79,19 +82,23 @@ fun BrowserScreen(
                 .fillMaxSize()
                 .navigationBarsPadding()
         ) {
-            // Stripped down Top Bar: URL box (search with google / enter url) + tab count [N] + infinity [∞]
+            // Stripped down Top Bar with Home button set to google.com
             BrowserTopBar(
                 activeTab = activeTab,
                 tabCount = uiState.tabs.size,
                 isMenuOpen = uiState.isMenuOpen,
                 isBookmarked = viewModel.isCurrentPageBookmarked(),
                 onNavigate = { url -> viewModel.loadUrl(url) },
+                onHome = { viewModel.loadUrl("https://www.google.com") },
                 onToggleTabSwitcher = { viewModel.toggleTabSwitcher() },
                 onToggleMenu = { viewModel.toggleMenu() },
                 onDismissMenu = { viewModel.closeMenu() },
                 onBack = { controller.goBack() },
                 onForward = { controller.goForward() },
-                onReload = { controller.reload() },
+                onReload = {
+                    viewModel.clearError(activeTab.id)
+                    controller.reload()
+                },
                 onToggleBookmark = { viewModel.toggleBookmark() },
                 onNewTab = { viewModel.openNewTab() },
                 onOpenHistory = { viewModel.openHistory() },
@@ -113,18 +120,12 @@ fun BrowserScreen(
                 )
             }
 
-            // Main Web View Area OR Error Screen with attached 404 illustration
-            if (activeTab.isError) {
-                PageErrorView(
-                    url = activeTab.url,
-                    onReload = {
-                        controller.reload()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
-            } else {
+            // Main Web View Area with PageErrorView overlay when network is unreachable
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
                 BrowserWebView(
                     tab = activeTab,
                     controller = controller,
@@ -136,10 +137,19 @@ fun BrowserScreen(
                     onPageError = { errorCode, description ->
                         viewModel.onPageError(activeTab.id, errorCode, description)
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
+                    modifier = Modifier.fillMaxSize()
                 )
+
+                if (activeTab.isError) {
+                    PageErrorView(
+                        url = activeTab.url,
+                        onReload = {
+                            viewModel.clearError(activeTab.id)
+                            controller.reload()
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
 

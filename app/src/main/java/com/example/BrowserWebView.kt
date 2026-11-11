@@ -5,13 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.http.SslError
 import android.os.Build
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -96,6 +97,9 @@ fun BrowserWebView(
             onPageError = onPageError
         ).also {
             controller.webView = it
+            if (tab.url.isNotBlank()) {
+                it.loadUrl(tab.url)
+            }
         }
     }
 
@@ -150,7 +154,18 @@ fun BrowserWebView(
     }
 
     AndroidView(
-        factory = { webView },
+        factory = {
+            webView.apply {
+                if (url != tab.url && tab.url.isNotBlank()) {
+                    loadUrl(tab.url)
+                }
+            }
+        },
+        update = { view ->
+            if (view.url != tab.url && tab.url.isNotBlank()) {
+                view.loadUrl(tab.url)
+            }
+        },
         modifier = modifier.fillMaxSize()
     )
 }
@@ -274,6 +289,15 @@ private fun createConfiguredWebView(
                 )
             }
 
+            override fun onReceivedSslError(
+                view: WebView?,
+                handler: SslErrorHandler?,
+                error: SslError?
+            ) {
+                // Ensure SSL pages load smoothly in proxy/streaming environments
+                handler?.proceed()
+            }
+
             override fun onReceivedError(
                 view: WebView?,
                 request: WebResourceRequest?,
@@ -281,18 +305,13 @@ private fun createConfiguredWebView(
             ) {
                 super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
-                    onPageError(error?.errorCode ?: -1, error?.description?.toString())
-                }
-            }
-
-            override fun onReceivedHttpError(
-                view: WebView?,
-                request: WebResourceRequest?,
-                errorResponse: WebResourceResponse?
-            ) {
-                super.onReceivedHttpError(view, request, errorResponse)
-                if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
-                    onPageError(errorResponse?.statusCode ?: 404, errorResponse?.reasonPhrase)
+                    val code = error?.errorCode ?: 0
+                    if (code == WebViewClient.ERROR_HOST_LOOKUP ||
+                        code == WebViewClient.ERROR_CONNECT ||
+                        code == WebViewClient.ERROR_TIMEOUT
+                    ) {
+                        onPageError(code, error?.description?.toString())
+                    }
                 }
             }
 

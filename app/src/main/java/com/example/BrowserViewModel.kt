@@ -382,6 +382,17 @@ class BrowserViewModel(application: Application? = null) : AndroidViewModel(appl
         }
     }
 
+    fun clearError(tabId: String) {
+        _uiState.update { state ->
+            val updated = state.tabs.map { tab ->
+                if (tab.id == tabId) {
+                    tab.copy(isError = false, isLoading = true)
+                } else tab
+            }
+            state.copy(tabs = updated)
+        }
+    }
+
     fun onPageFinished(tabId: String, url: String?, title: String?, canBack: Boolean, canForward: Boolean) {
         _uiState.update { state ->
             val updated = state.tabs.map { tab ->

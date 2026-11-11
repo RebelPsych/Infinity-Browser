@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -72,6 +73,7 @@ fun BrowserTopBar(
     isMenuOpen: Boolean,
     isBookmarked: Boolean,
     onNavigate: (String) -> Unit,
+    onHome: () -> Unit,
     onToggleTabSwitcher: () -> Unit,
     onToggleMenu: () -> Unit,
     onDismissMenu: () -> Unit,
@@ -108,7 +110,24 @@ fun BrowserTopBar(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. URL / Google Search Box
+            // Home button set to google.com
+            IconButton(
+                onClick = onHome,
+                modifier = Modifier
+                    .size(38.dp)
+                    .testTag("top_bar_home_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Home (google.com)",
+                    tint = if (activeTab.url == "https://www.google.com") InfinityPurpleLight else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // URL / Google Search Box
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -195,7 +214,7 @@ fun BrowserTopBar(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // 2. Tab button with number of tabs: [ N ]
+            // Tab button with number of tabs: [ N ]
             Surface(
                 onClick = onToggleTabSwitcher,
                 shape = RoundedCornerShape(8.dp),
@@ -220,7 +239,7 @@ fun BrowserTopBar(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            // 3. Infinity button: [ ∞ ] - Light Purple Color
+            // Infinity button: [ ∞ ] - Light Purple Color
             Box {
                 IconButton(
                     onClick = onToggleMenu,
@@ -231,7 +250,7 @@ fun BrowserTopBar(
                     Icon(
                         imageVector = Icons.Default.AllInclusive,
                         contentDescription = "Options menu",
-                        tint = InfinityPurpleLight, // Light purple color requested by user
+                        tint = InfinityPurpleLight,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -308,6 +327,16 @@ fun BrowserTopBar(
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                         modifier = Modifier.padding(vertical = 4.dp)
+                    )
+
+                    // Option: Home (Google)
+                    DropdownMenuItem(
+                        text = { Text("Home (google.com)", style = MaterialTheme.typography.bodyMedium) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Home, contentDescription = null, tint = InfinityPurpleLight, modifier = Modifier.size(20.dp))
+                        },
+                        onClick = onHome,
+                        modifier = Modifier.testTag("menu_item_home")
                     )
 
                     // Option: new tab
