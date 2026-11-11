@@ -1,22 +1,144 @@
 package com.example
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import org.json.JSONArray
+import org.json.JSONObject
 import java.net.URLEncoder
+import java.util.UUID
 
-class BrowserViewModel : ViewModel() {
+class BrowserViewModel(application: Application? = null) : AndroidViewModel(application ?: Application()) {
+
+    private val appContext: Context? = application?.applicationContext
+    private val prefs = appContext?.getSharedPreferences("infinity_browser_session", Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(BrowserUiState())
     val uiState: StateFlow<BrowserUiState> = _uiState.asStateFlow()
+
+    init {
+        restoreSession()
+    }
+
+    private fun restoreSession() {
+        val sp = prefs ?: return
+        try {
+            val savedTabsStr = sp.getString("saved_tabs", null)
+            val savedActiveId = sp.getString("saved_active_id", null)
+            val savedBookmarksStr = sp.getString("saved_bookmarks", null)
+            val savedHistoryStr = sp.getString("saved_history", null)
+
+            val restoredTabs = mutableListOf<BrowserTab>()
+            if (!savedTabsStr.isNullOrBlank()) {
+                val jsonArray = JSONArray(savedTabsStr)
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    restoredTabs.add(
+                        BrowserTab(
+                            id = obj.optString("id", UUID.randomUUID().toString()),
+                            url = obj.optString("url", "https://www.google.com"),
+                            title = obj.optString("title", "New Tab"),
+                            isDesktopSite = obj.optBoolean("isDesktopSite", false)
+                        )
+                    )
+                }
+            }
+
+            val restoredBookmarks = mutableListOf<BookmarkItem>()
+            if (!savedBookmarksStr.isNullOrBlank()) {
+                val jsonArray = JSONArray(savedBookmarksStr)
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    restoredBookmarks.add(
+                        BookmarkItem(
+                            id = obj.optString("id", UUID.randomUUID().toString()),
+                            title = obj.optString("title", "Bookmark"),
+                            url = obj.optString("url", "")
+                        )
+                    )
+                }
+            }
+
+            val restoredHistory = mutableListOf<HistoryItem>()
+            if (!savedHistoryStr.isNullOrBlank()) {
+                val jsonArray = JSONArray(savedHistoryStr)
+                for (i in 0 until jsonArray.length()) {
+                    val obj = jsonArray.getJSONObject(i)
+                    restoredHistory.add(
+                        HistoryItem(
+                            id = obj.optString("id", UUID.randomUUID().toString()),
+                            title = obj.optString("title", ""),
+                            url = obj.optString("url", ""),
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+            }
+
+            if (restoredTabs.isNotEmpty()) {
+                val activeId = if (restoredTabs.any { it.id == savedActiveId }) savedActiveId!! else restoredTabs.first().id
+                _uiState.update {
+                    it.copy(
+                        tabs = restoredTabs,
+                        activeTabId = activeId,
+                        bookmarksList = restoredBookmarks,
+                        historyList = restoredHistory
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun saveSession() {
+        val sp = prefs ?: return
+        try {
+            val state = _uiState.value
+            val tabsJson = JSONArray()
+            for (tab in state.tabs) {
+                val obj = JSONObject()
+                obj.put("id", tab.id)
+                obj.put("url", tab.url)
+                obj.put("title", tab.title)
+                obj.put("isDesktopSite", tab.isDesktopSite)
+                tabsJson.put(obj)
+            }
+
+            val bookmarksJson = JSONArray()
+            for (b in state.bookmarksList) {
+                val obj = JSONObject()
+                obj.put("id", b.id)
+                obj.put("title", b.title)
+                obj.put("url", b.url)
+                bookmarksJson.put(obj)
+            }
+
+            val historyJson = JSONArray()
+            for (h in state.historyList.take(50)) {
+                val obj = JSONObject()
+                obj.put("id", h.id)
+                obj.put("title", h.title)
+                obj.put("url", h.url)
+                obj.put("timestamp", h.timestamp)
+                historyJson.put(obj)
+            }
+
+            sp.edit()
+                .putString("saved_tabs", tabsJson.toString())
+                .putString("saved_active_id", state.activeTabId)
+                .putString("saved_bookmarks", bookmarksJson.toString())
+                .putString("saved_history", historyJson.toString())
+                .apply()
+        } catch (_: Exception) {}
+    }
 
     fun loadUrl(rawInput: String) {
         val trimmed = rawInput.trim()
@@ -31,6 +153,7 @@ class BrowserViewModel : ViewModel() {
                     tab.copy(
                         url = resolvedUrl,
                         isLoading = true,
+                        isError = false,
                         progress = 10
                     )
                 } else tab
@@ -41,6 +164,7 @@ class BrowserViewModel : ViewModel() {
                 isMenuOpen = false
             )
         }
+        saveSession()
     }
 
     fun openNewTab() {
@@ -56,6 +180,7 @@ class BrowserViewModel : ViewModel() {
                 isMenuOpen = false
             )
         }
+        saveSession()
     }
 
     fun closeTab(tabId: String) {
@@ -73,12 +198,14 @@ class BrowserViewModel : ViewModel() {
                 state.copy(tabs = remaining, activeTabId = newActiveId)
             }
         }
+        saveSession()
     }
 
     fun selectTab(tabId: String) {
         _uiState.update {
             it.copy(activeTabId = tabId, isTabSwitcherOpen = false, isMenuOpen = false)
         }
+        saveSession()
     }
 
     fun toggleTabSwitcher() {
@@ -105,6 +232,7 @@ class BrowserViewModel : ViewModel() {
             }
             state.copy(tabs = updated, isMenuOpen = false)
         }
+        saveSession()
     }
 
     fun toggleBookmark() {
@@ -128,6 +256,7 @@ class BrowserViewModel : ViewModel() {
                 )
             }
         }
+        saveSession()
     }
 
     fun isCurrentPageBookmarked(): Boolean {
@@ -139,6 +268,7 @@ class BrowserViewModel : ViewModel() {
         _uiState.update { state ->
             state.copy(bookmarksList = state.bookmarksList.filter { it.id != id })
         }
+        saveSession()
     }
 
     fun openBookmarks() {
@@ -161,14 +291,15 @@ class BrowserViewModel : ViewModel() {
         _uiState.update { state ->
             state.copy(historyList = state.historyList.filter { it.id != id })
         }
+        saveSession()
     }
 
     fun clearAllHistory() {
         _uiState.update { state ->
             state.copy(historyList = emptyList(), snackBarMessage = "Browsing history cleared")
         }
+        saveSession()
     }
-
 
     fun triggerCreateShortcut(context: Context) {
         val active = _uiState.value.activeTab
@@ -214,6 +345,7 @@ class BrowserViewModel : ViewModel() {
                     tab.copy(
                         url = url ?: tab.url,
                         isLoading = true,
+                        isError = false,
                         progress = 15
                     )
                 } else tab
@@ -236,14 +368,27 @@ class BrowserViewModel : ViewModel() {
         }
     }
 
+    fun onPageError(tabId: String, errorCode: Int, description: String?) {
+        _uiState.update { state ->
+            val updated = state.tabs.map { tab ->
+                if (tab.id == tabId) {
+                    tab.copy(
+                        isLoading = false,
+                        isError = true
+                    )
+                } else tab
+            }
+            state.copy(tabs = updated)
+        }
+    }
+
     fun onPageFinished(tabId: String, url: String?, title: String?, canBack: Boolean, canForward: Boolean) {
         _uiState.update { state ->
             val updated = state.tabs.map { tab ->
                 if (tab.id == tabId) {
                     val resolvedUrl = url ?: tab.url
                     val resolvedTitle = title ?: tab.title
-                    // Save to history if valid web url
-                    if (!resolvedUrl.startsWith("about:") && resolvedUrl.isNotBlank()) {
+                    if (!resolvedUrl.startsWith("about:") && resolvedUrl.isNotBlank() && !tab.isError) {
                         addHistoryEntry(resolvedTitle, resolvedUrl)
                     }
                     tab.copy(
@@ -258,6 +403,7 @@ class BrowserViewModel : ViewModel() {
             }
             state.copy(tabs = updated)
         }
+        saveSession()
     }
 
     fun dismissSnackBar() {
@@ -267,7 +413,6 @@ class BrowserViewModel : ViewModel() {
     private fun addHistoryEntry(title: String, url: String) {
         val entry = HistoryItem(title = title.ifBlank { url }, url = url)
         val currentHistory = _uiState.value.historyList
-        // Avoid duplicate identical entry at top
         if (currentHistory.firstOrNull()?.url != url) {
             _uiState.update { it.copy(historyList = (listOf(entry) + currentHistory).take(100)) }
         }

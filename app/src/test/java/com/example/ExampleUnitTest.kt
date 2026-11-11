@@ -48,4 +48,17 @@ class ExampleUnitTest {
         viewModel.toggleBookmark()
         assertTrue(viewModel.isCurrentPageBookmarked())
     }
+
+    @Test
+    fun `view model error handling test`() {
+        val viewModel = BrowserViewModel()
+        val tabId = viewModel.uiState.value.activeTabId
+        assertFalse(viewModel.uiState.value.activeTab.isError)
+
+        viewModel.onPageError(tabId, 404, "Not Found")
+        assertTrue(viewModel.uiState.value.activeTab.isError)
+
+        viewModel.onPageStarted(tabId, "https://google.com")
+        assertFalse(viewModel.uiState.value.activeTab.isError)
+    }
 }

@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.InfinityPurpleLight
 
 @Composable
@@ -52,6 +51,7 @@ fun BrowserScreen(
             uiState.isHistoryOpen -> viewModel.closeHistory()
             uiState.isBookmarksOpen -> viewModel.closeBookmarks()
             uiState.isMenuOpen -> viewModel.closeMenu()
+            activeTab.isError && activeTab.canGoBack -> controller.goBack()
             activeTab.canGoBack -> controller.goBack()
             uiState.tabs.size > 1 -> viewModel.closeTab(activeTab.id)
             else -> {
@@ -113,19 +113,34 @@ fun BrowserScreen(
                 )
             }
 
-            // Main Web View Area
-            BrowserWebView(
-                tab = activeTab,
-                controller = controller,
-                onPageStarted = { url -> viewModel.onPageStarted(activeTab.id, url) },
-                onProgressChanged = { progress -> viewModel.onProgressChanged(activeTab.id, progress) },
-                onPageFinished = { url, title, canBack, canForward ->
-                    viewModel.onPageFinished(activeTab.id, url, title, canBack, canForward)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
+            // Main Web View Area OR Error Screen with attached 404 illustration
+            if (activeTab.isError) {
+                PageErrorView(
+                    url = activeTab.url,
+                    onReload = {
+                        controller.reload()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            } else {
+                BrowserWebView(
+                    tab = activeTab,
+                    controller = controller,
+                    onPageStarted = { url -> viewModel.onPageStarted(activeTab.id, url) },
+                    onProgressChanged = { progress -> viewModel.onProgressChanged(activeTab.id, progress) },
+                    onPageFinished = { url, title, canBack, canForward ->
+                        viewModel.onPageFinished(activeTab.id, url, title, canBack, canForward)
+                    },
+                    onPageError = { errorCode, description ->
+                        viewModel.onPageError(activeTab.id, errorCode, description)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            }
         }
 
         // Tab Previews Grid Overlay

@@ -11,6 +11,7 @@ import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -77,6 +78,7 @@ fun BrowserWebView(
     onPageStarted: (String?) -> Unit,
     onProgressChanged: (Int) -> Unit,
     onPageFinished: (String?, String?, Boolean, Boolean) -> Unit,
+    onPageError: (Int, String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -90,7 +92,8 @@ fun BrowserWebView(
             defaultMobileUserAgent = defaultMobileUserAgent,
             onPageStarted = onPageStarted,
             onProgressChanged = onProgressChanged,
-            onPageFinished = onPageFinished
+            onPageFinished = onPageFinished,
+            onPageError = onPageError
         ).also {
             controller.webView = it
         }
@@ -160,7 +163,8 @@ private fun createConfiguredWebView(
     defaultMobileUserAgent: String,
     onPageStarted: (String?) -> Unit,
     onProgressChanged: (Int) -> Unit,
-    onPageFinished: (String?, String?, Boolean, Boolean) -> Unit
+    onPageFinished: (String?, String?, Boolean, Boolean) -> Unit,
+    onPageError: (Int, String?) -> Unit
 ): WebView {
     return WebView(context).apply {
         layoutParams = ViewGroup.LayoutParams(
@@ -170,6 +174,11 @@ private fun createConfiguredWebView(
 
         // Dark background prevents white flash during page load
         setBackgroundColor(Color.parseColor("#070A0F"))
+
+        // Scrollbar configuration
+        isVerticalScrollBarEnabled = true
+        isHorizontalScrollBarEnabled = false
+        scrollBarStyle = WebView.SCROLLBARS_INSIDE_OVERLAY
 
         // Cookies setup: Google AI Studio and modern auth strictly require third-party cookies
         val cookieManager = CookieManager.getInstance()
@@ -226,11 +235,19 @@ private fun createConfiguredWebView(
                 val title = view?.title
                 onPageFinished(url, title, canBack, canForward)
 
-                // Inject dark mode preference CSS and desktop viewport helper
+                // Inject purple scrollbar and dark mode preference CSS
                 val isDesktop = tab.isDesktopSite
                 view?.evaluateJavascript(
                     """
                     (function() {
+                        // Light purple scrollbar styling matching infinity symbol (#D8B4FE)
+                        if (!document.getElementById('__infinity_scrollbar_style')) {
+                            var sb = document.createElement('style');
+                            sb.id = '__infinity_scrollbar_style';
+                            sb.innerHTML = '::-webkit-scrollbar { width: 8px !important; height: 8px !important; } ::-webkit-scrollbar-track { background: transparent !important; } ::-webkit-scrollbar-thumb { background: #D8B4FE !important; border-radius: 4px !important; } ::-webkit-scrollbar-thumb:hover { background: #C084FC !important; } * { scrollbar-color: #D8B4FE transparent !important; scrollbar-width: thin !important; }';
+                            document.head && document.head.appendChild(sb);
+                        }
+
                         // Dark mode stylesheet injection
                         if (!document.getElementById('__infinity_dark_style')) {
                             var s = document.createElement('style');
@@ -238,6 +255,7 @@ private fun createConfiguredWebView(
                             s.innerHTML = '@media (prefers-color-scheme: light) { html { color-scheme: dark; } }';
                             document.head && document.head.appendChild(s);
                         }
+
                         // Desktop site viewport width reinforcement for Google AI Studio & desktop apps
                         if ($isDesktop) {
                             var vp = document.querySelector('meta[name="viewport"]');
@@ -254,6 +272,28 @@ private fun createConfiguredWebView(
                     """.trimIndent(),
                     null
                 )
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    onPageError(error?.errorCode ?: -1, error?.description?.toString())
+                }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
+                    onPageError(errorResponse?.statusCode ?: 404, errorResponse?.reasonPhrase)
+                }
             }
 
             override fun shouldOverrideUrlLoading(
@@ -275,14 +315,6 @@ private fun createConfiguredWebView(
                         true
                     }
                 }
-            }
-
-            override fun onReceivedError(
-                view: WebView?,
-                request: WebResourceRequest?,
-                error: WebResourceError?
-            ) {
-                super.onReceivedError(view, request, error)
             }
         }
 
